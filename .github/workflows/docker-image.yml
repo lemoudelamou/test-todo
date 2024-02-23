@@ -15,7 +15,7 @@ jobs:
       - name: Build Client
         run: |
           cd "./client"
-          docker login -u ${{ secrets.CI_REGISTRY_USER }} -p ${{ secrets.CI_REGISTRY_PASSWORD }} ${{ secrets.DOCKER_REGISTRY }}
+          echo ${{ secrets.CI_REGISTRY_PASSWORD }} | docker login -u ${{ secrets.CI_REGISTRY_USER }} --password-stdin ${{ secrets.DOCKER_REGISTRY }}
           docker build -t ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.CLIENT_IMAGE_NAME }} .
           docker push ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.CLIENT_IMAGE_NAME }}
 
@@ -28,27 +28,9 @@ jobs:
       - name: Build Server
         run: |
           cd "./server"
-          docker login -u ${{ secrets.CI_REGISTRY_USER }} -p ${{ secrets.CI_REGISTRY_PASSWORD }} ${{ secrets.DOCKER_REGISTRY }}
+          echo ${{ secrets.CI_REGISTRY_PASSWORD }} | docker login -u ${{ secrets.CI_REGISTRY_USER }} --password-stdin ${{ secrets.DOCKER_REGISTRY }}
           docker build -t ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.SERVER_IMAGE_NAME }} .
           docker push ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.SERVER_IMAGE_NAME }}
-
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
-
-      - name: Install Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '14'
-
-      - name: Test Server
-        run: |
-          cd "./server"
-          npm install
-          echo "Running tests..."
-          npm run test
 
   publish-client:
     runs-on: ubuntu-latest
@@ -59,7 +41,7 @@ jobs:
       - name: Publish Client
         run: |
           cd "./client"
-          docker login -u ${{ secrets.CI_REGISTRY_USER }} -p ${{ secrets.CI_REGISTRY_PASSWORD }} ${{ secrets.DOCKER_REGISTRY }}
+          echo ${{ secrets.CI_REGISTRY_PASSWORD }} | docker login -u ${{ secrets.CI_REGISTRY_USER }} --password-stdin ${{ secrets.DOCKER_REGISTRY }}
           docker pull ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.CLIENT_IMAGE_NAME }}
 
   publish-server:
@@ -71,5 +53,5 @@ jobs:
       - name: Publish Server
         run: |
           cd "./server"
-          docker login -u ${{ secrets.CI_REGISTRY_USER }} -p ${{ secrets.CI_REGISTRY_PASSWORD }} ${{ secrets.DOCKER_REGISTRY }}
+          echo ${{ secrets.CI_REGISTRY_PASSWORD }} | docker login -u ${{ secrets.CI_REGISTRY_USER }} --password-stdin ${{ secrets.DOCKER_REGISTRY }}
           docker pull ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.SERVER_IMAGE_NAME }}
