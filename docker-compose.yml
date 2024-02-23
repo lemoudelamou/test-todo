@@ -1,0 +1,46 @@
+version: "3.7"
+
+services:
+  server:
+    image: registry.bht-berlin.de:443/s86908/mern-stack-project/server
+    container_name: myapp-node-server
+    command: npm run dev
+    volumes:
+      - ./server:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "3500:3500"
+    env_file: ./server/.env
+    environment:
+      - NODE_ENV=development
+    networks:
+      - mern-app
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo
+    volumes:
+      - data-volume:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - mern-app
+
+  client:
+    image: registry.bht-berlin.de:443/s86908/mern-stack-project/client
+    container_name: myapp-react-client
+    volumes:
+      - ./client:/usr/app
+      - /usr/app/node_modules
+    ports:
+      - "3000:3000"
+    networks:
+      - mern-app
+
+networks:
+  mern-app:
+    driver: bridge
+
+volumes:
+  data-volume:

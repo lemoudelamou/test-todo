@@ -1,0 +1,86 @@
+stages:
+  - build
+  - test
+  - publish
+  - deploy
+variables:
+  CLIENT_IMAGE_NAME: "mern-stack-project/client"
+  SERVER_IMAGE_NAME: "mern-stack-project/server"
+  DOCKER_REGISTRY: "registry.bht-berlin.de:443/s86908"
+# ==============================================================================================
+build-client:
+  stage: build
+  services:
+    - docker:dind
+  script:
+    - cd "./client"
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$DOCKER_REGISTRY"
+    - docker build -t "$DOCKER_REGISTRY/$CLIENT_IMAGE_NAME" .
+    - docker push "$DOCKER_REGISTRY/$CLIENT_IMAGE_NAME"
+  tags:
+    - docker-privileged
+
+build-server:
+  stage: build
+  services:
+    - docker:dind
+  script:
+    - cd "./server"
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$DOCKER_REGISTRY"
+    - docker build -t "$DOCKER_REGISTRY/$SERVER_IMAGE_NAME" .
+    - docker push "$DOCKER_REGISTRY/$SERVER_IMAGE_NAME"
+  tags:
+    - docker-privileged
+
+# ==============================================================================================
+test:
+  stage: test
+  image: node:20
+  script:
+    - cd "./server"
+    - npm install
+    - echo "Running tests..."
+    - npm run test
+  tags:
+    - docker-privileged
+
+# ==============================================================================================
+publish-client:
+  stage: publish
+  services:
+    - docker:dind
+  script:
+    - cd "./client"
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$DOCKER_REGISTRY"
+    - docker pull "$DOCKER_REGISTRY/$CLIENT_IMAGE_NAME"
+  tags:
+    - docker-privileged
+
+publish-server:
+  stage: publish
+  services:
+    - docker:dind
+  script:
+    - cd "./server"
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$DOCKER_REGISTRY"
+    - docker pull "$DOCKER_REGISTRY/$SERVER_IMAGE_NAME"
+  tags:
+    - docker-privileged
+
+# ==============================================================================================
+deploy:
+  stage: deploy
+  before_script:
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+  script:
+    - echo "Copy docker-compose to remote"
+    - ssh -o StrictHostKeyChecking=false $SSH_USER@$SSH_HOST "mkdir -p ~/myvolume/server"
+    - scp -v -o StrictHostKeyChecking=false docker-compose.yml $SSH_USER@$SSH_HOST:~/myvolume/
+    - scp -v -o StrictHostKeyChecking=false server/.env $SSH_USER@$SSH_HOST:~/myvolume/server/
+    - ssh -o StrictHostKeyChecking=false $SSH_USER@$SSH_HOST "docker-compose -f ~/myvolume/docker-compose.yml pull"
+    - ssh -o StrictHostKeyChecking=false $SSH_USER@$SSH_HOST "docker-compose -f ~/myvolume/docker-compose.yml up -d"
+
+  only:
+    - main
